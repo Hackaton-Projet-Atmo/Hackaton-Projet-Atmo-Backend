@@ -1,6 +1,6 @@
 const https = require("https");
-const { poolPromise } = require('../util/database'); // Assurez-vous que le chemin d'accès est correct
 const sql = require('mssql');
+const { poolPromise } = require('../util/database');
 
 function csvToArray(csv) {
     const rows = csv.split('\n');
@@ -14,8 +14,6 @@ function csvToArray(csv) {
 
 const url = "https://atmo-bfc.iad-informatique.com/geoserver/mesure/wfs?SERVICE=WFS&REQUEST=GetFeature&typename=mes_bfc_horaire_poll_princ&count=1000&sortBy=date_fin%20D&outputformat=csv";
 
-
-console.log("test 1 ")
 https.get(url, (res) => {
     let csv = "";
     res.on('data', (str) => {
@@ -30,7 +28,7 @@ https.get(url, (res) => {
                     ville: el[3],
                     station: el[5],
                     nom_poll: el[9],
-                    valeur: el[11],
+                    valeur: parseFloat(el[11]),
                     unite: el[12],
                     date: el[14].slice(0, 10)
                 });
@@ -40,14 +38,14 @@ https.get(url, (res) => {
         try {
             const pool = await poolPromise;
             for (const item of cleanData) {
-                const result = await pool.request()
+                await pool.request()
                     .input('ville', sql.VarChar, item.ville)
                     .input('station', sql.VarChar, item.station)
                     .input('nom_poll', sql.VarChar, item.nom_poll)
                     .input('valeur', sql.Float, item.valeur)
                     .input('unite', sql.VarChar, item.unite)
                     .input('date', sql.Date, item.date)
-                    .query('INSERT INTO dbo.atmo (ville, station, nom_poll, valeur, unite, date) VALUES (@ville, @station, @nom_poll, @valeur, @unite, @date)');
+                    .query('INSERT INTO Atmo (ville, station, nom_poll, valeur, unite, date) VALUES (@ville, @station, @nom_poll, @valeur, @unite, @date)');
             }
             console.log('Données insérées avec succès');
         } catch (err) {
@@ -55,4 +53,3 @@ https.get(url, (res) => {
         }
     });
 });
-
